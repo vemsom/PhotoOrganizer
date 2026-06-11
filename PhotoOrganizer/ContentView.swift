@@ -112,6 +112,21 @@ struct ContentView: View {
     private func scanAndPlan() {
         guard let folder = selectedFolder else { return }
         scanError = nil
+
+        let needsFileScan = convertToDNG || sortFiles
+
+        // Only deleteEmptyFolders → skip photo scan entirely
+        guard needsFileScan else {
+            let ctx = folderContext ?? FolderContext.parse(folderURL: folder)
+            folderContext = ctx
+            plan = PlanBuilder(rootFolder: folder, context: ctx, files: []).build(
+                convertToDNG: false,
+                sortFiles: false
+            )
+            Task { await executePlan() }
+            return
+        }
+
         isScanning = true
         scanningFile = "Startar..."
         let recursive = recurseSubfolders
@@ -139,7 +154,7 @@ struct ContentView: View {
                 scannedFiles = files
                 let ctx = folderContext ?? FolderContext.parse(folderURL: folder)
                 folderContext = ctx
-                let thePlan = PlanBuilder(rootFolder: folder, context: ctx, files: files).build(
+                plan = PlanBuilder(rootFolder: folder, context: ctx, files: files).build(
                     convertToDNG: convertToDNG,
                     sortFiles: sortFiles
                 )
@@ -147,13 +162,6 @@ struct ContentView: View {
                 log.log(.info, ctx.humanDescription)
                 isScanning = false
                 scanningFile = nil
-
-                if thePlan.operations.isEmpty && deleteEmptyFolders {
-                    plan = thePlan
-                    Task { await executePlan() }
-                } else {
-                    plan = thePlan
-                }
             }
         }
     }
