@@ -20,6 +20,7 @@ final class OperationRunner: ObservableObject {
         var movedRW2: Int = 0
         var movedToUnsorted: Int = 0
         var skipped: Int = 0
+        var removedEmptyFolders: Int = 0
         var errors: Int = 0
     }
 
@@ -31,7 +32,8 @@ final class OperationRunner: ObservableObject {
         context: FolderContext,
         conflictDecisions: [URL: ConflictDecision],
         convertToDNG: Bool = true,
-        sortFiles: Bool = true
+        sortFiles: Bool = true,
+        deleteEmptyFolders: Bool = false
     ) async -> RunResult {
         isRunning = true
         isCancelled = false
@@ -189,11 +191,27 @@ final class OperationRunner: ObservableObject {
             await Task.yield()
         }
 
-        // Rensa tomma kataloger
+        // Rensa tomma kataloger (efter flytt)
         if !movedSources.isEmpty {
             currentPhase = "Rensar tomma mappar..."
             await Task.yield()
             cleanUpEmptyDirectories(root: rootFolder, movedSources: movedSources)
+        }
+
+        // Rensa alla tomma kataloger (wide scan, om aktiverat)
+        if deleteEmptyFolders {
+            currentPhase = "Rensar alla tomma mappar..."
+            await Task.yield()
+            let empty = EmptyFolderRemover.scanEmptyDirectories(root: rootFolder)
+            if !empty.isEmpty {
+                let (deleted, _) = EmptyFolderRemover.deleteDirectories(empty) { msg in
+                    let level: OperationLog.Level = msg.hasPrefix("Kunde") ? .warn : .info
+                    self.log.log(level, msg)
+                }
+                result.removedEmptyFolders = deleted
+            } else {
+                log.log(.info, "Inga tomma mappar hittades.")
+            }
         }
 
         currentPhase = "Klar"

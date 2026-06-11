@@ -26,6 +26,9 @@ struct SummaryView: View {
                     row("Flyttade RW2", result.movedRW2)
                     row("Hamnade i _unsorted/", result.movedToUnsorted)
                     row("Hoppade över", result.skipped)
+                    if result.removedEmptyFolders > 0 {
+                        row("Tog bort tomma mappar", result.removedEmptyFolders)
+                    }
                     row("Fel", result.errors, highlight: result.errors > 0)
                 }
                 .padding(8)

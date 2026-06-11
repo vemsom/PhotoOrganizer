@@ -15,6 +15,8 @@ struct ContentView: View {
     @State private var recurseSubfolders = false
     @State private var isScanning = false
     @State private var scanningFile: String?
+    @State private var deleteEmptyFolders = false
+    @State private var showEmptyFolderCleanup = false
 
     @StateObject private var log = OperationLog()
     @StateObject private var runner: OperationRunner
@@ -55,8 +57,10 @@ struct ContentView: View {
                         convertToDNG: $convertToDNG,
                         sortFiles: $sortFiles,
                         recurseSubfolders: $recurseSubfolders,
+                        deleteEmptyFolders: $deleteEmptyFolders,
                         onPick: pickFolder,
-                        onScan: scanAndPlan
+                        onScan: scanAndPlan,
+                        onCleanEmpty: { showEmptyFolderCleanup = true }
                     )
                 }
 
@@ -69,6 +73,13 @@ struct ContentView: View {
 
             if isScanning {
                 ScanningOverlay(fileName: $scanningFile)
+            }
+        }
+        .sheet(isPresented: $showEmptyFolderCleanup) {
+            if let folder = selectedFolder {
+                EmptyFolderCleanupView(rootFolder: folder) {
+                    showEmptyFolderCleanup = false
+                }
             }
         }
     }
@@ -156,7 +167,8 @@ struct ContentView: View {
             context: ctx,
             conflictDecisions: conflictDecisions,
             convertToDNG: convertToDNG,
-            sortFiles: sortFiles
+            sortFiles: sortFiles,
+            deleteEmptyFolders: deleteEmptyFolders
         )
         runResult = result
         showSummary = true

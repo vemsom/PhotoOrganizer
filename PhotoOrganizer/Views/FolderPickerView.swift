@@ -6,8 +6,10 @@ struct FolderPickerView: View {
     @Binding var convertToDNG: Bool
     @Binding var sortFiles: Bool
     @Binding var recurseSubfolders: Bool
+    @Binding var deleteEmptyFolders: Bool
     var onPick: () -> Void
     var onScan: () -> Void
+    var onCleanEmpty: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -46,6 +48,11 @@ struct FolderPickerView: View {
                         .toggleStyle(.switch)
                     Text("Sök även igenom alla undermappar rekursivt.")
                         .font(.footnote).foregroundStyle(.secondary).padding(.leading, 28)
+
+                    Toggle("Rensa tomma mappar efter sortering", isOn: $deleteEmptyFolders)
+                        .toggleStyle(.switch)
+                    Text("Efter sortering: ta bort alla tomma kataloger i mapp-trädet.")
+                        .font(.footnote).foregroundStyle(.secondary).padding(.leading, 28)
                 }
                 .padding(8)
             }
@@ -60,8 +67,15 @@ struct FolderPickerView: View {
                             .foregroundStyle(.orange).font(.callout)
                     }
 
-                    Button("Skanna och bygg plan", action: onScan)
-                        .disabled(selectedFolder == nil || (!convertToDNG && !sortFiles))
+                    HStack {
+                        Button("Skanna och bygg plan", action: onScan)
+                            .disabled(selectedFolder == nil || (!convertToDNG && !sortFiles))
+                        Spacer()
+                        Button("Rensa tomma mappar nu") {
+                            onCleanEmpty()
+                        }
+                        .disabled(selectedFolder == nil)
+                    }
                     if let err = scanError {
                         Text(err).foregroundStyle(.red).font(.callout)
                     }
