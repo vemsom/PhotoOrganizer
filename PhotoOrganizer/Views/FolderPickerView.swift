@@ -67,18 +67,23 @@ struct FolderPickerView: View {
                             .foregroundStyle(.orange).font(.callout)
                     }
 
-                    HStack {
-                        Button("Skanna och bygg plan", action: onScan)
-                            .disabled(selectedFolder == nil || (!convertToDNG && !sortFiles))
-                        Spacer()
-                        Button("Rensa tomma mappar nu") {
-                            onCleanEmpty()
-                        }
-                        .disabled(selectedFolder == nil)
-                    }
+                    Button("Skanna och bygg plan", action: onScan)
+                        .disabled(selectedFolder == nil || (!convertToDNG && !sortFiles))
                     if let err = scanError {
                         Text(err).foregroundStyle(.red).font(.callout)
                     }
+                }
+                .padding(8)
+            }
+
+            GroupBox("Rensa tomma mappar") {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Skanna och ta bort tomma kataloger i mapp-trädet. Kräver inga inställningar ovan.")
+                        .foregroundStyle(.secondary)
+                    Button("Rensa tomma mappar nu") {
+                        onCleanEmpty()
+                    }
+                    .disabled(selectedFolder == nil)
                 }
                 .padding(8)
             }
