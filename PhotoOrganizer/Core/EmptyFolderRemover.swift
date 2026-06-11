@@ -2,36 +2,31 @@ import Foundation
 
 struct EmptyFolderRemover {
     static func scanEmptyDirectories(root: URL, includeHidden: Bool = false) -> [URL] {
-        let fm = FileManager.default
-        guard let enumerator = fm.enumerator(
-            at: root,
-            includingPropertiesForKeys: [.isDirectoryKey],
-            options: .skipsPackageDescendants
-        ) else { return [] }
-
         var candidates: [URL] = []
+        scanRecursive(fm: FileManager.default, dir: root, isRoot: true, includeHidden: includeHidden, candidates: &candidates)
+        return candidates.sorted { $0.path.count > $1.path.count }
+    }
 
-        for case let url as URL in enumerator {
-            let values = try? url.resourceValues(forKeys: [.isDirectoryKey])
-            guard values?.isDirectory == true else { continue }
+    private static func scanRecursive(fm: FileManager, dir: URL, isRoot: Bool, includeHidden: Bool, candidates: inout [URL]) {
+        let opts: FileManager.DirectoryEnumerationOptions = includeHidden ? [] : [.skipsHiddenFiles]
+        let contents = (try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: [.isDirectoryKey], options: opts)) ?? []
 
-            if !includeHidden {
-                let name = url.lastPathComponent
-                if name.hasPrefix(".") { continue }
-            }
-
-            let contents = (try? fm.contentsOfDirectory(
-                at: url,
-                includingPropertiesForKeys: nil,
-                options: [.skipsHiddenFiles]
-            )) ?? []
-
-            if contents.isEmpty {
-                candidates.append(url)
+        var subdirs: [URL] = []
+        for url in contents {
+            guard (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true else { continue }
+            let name = url.lastPathComponent
+            if includeHidden || !name.hasPrefix(".") {
+                subdirs.append(url)
             }
         }
 
-        return candidates.sorted { $0.path.count > $1.path.count }
+        for subdir in subdirs {
+            scanRecursive(fm: fm, dir: subdir, isRoot: false, includeHidden: includeHidden, candidates: &candidates)
+        }
+
+        if contents.isEmpty && !isRoot {
+            candidates.append(dir)
+        }
     }
 
     static func deleteDirectories(_ directories: [URL], root: URL? = nil, log: ((String) -> Void)? = nil) -> (deleted: Int, failed: Int) {
