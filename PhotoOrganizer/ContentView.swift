@@ -16,7 +16,6 @@ struct ContentView: View {
     @State private var isScanning = false
     @State private var scanningFile: String?
     @State private var deleteEmptyFolders = false
-    @State private var showEmptyFolderCleanup = false
 
     @StateObject private var log = OperationLog()
     @StateObject private var runner: OperationRunner
@@ -59,8 +58,7 @@ struct ContentView: View {
                         recurseSubfolders: $recurseSubfolders,
                         deleteEmptyFolders: $deleteEmptyFolders,
                         onPick: pickFolder,
-                        onScan: scanAndPlan,
-                        onCleanEmpty: { showEmptyFolderCleanup = true }
+                        onScan: scanAndPlan
                     )
                 }
 
@@ -75,13 +73,7 @@ struct ContentView: View {
                 ScanningOverlay(fileName: $scanningFile)
             }
         }
-        .sheet(isPresented: $showEmptyFolderCleanup) {
-            if let folder = selectedFolder {
-                EmptyFolderCleanupView(rootFolder: folder) {
-                    showEmptyFolderCleanup = false
-                }
-            }
-        }
+
     }
 
     private var header: some View {
@@ -147,7 +139,7 @@ struct ContentView: View {
                 scannedFiles = files
                 let ctx = folderContext ?? FolderContext.parse(folderURL: folder)
                 folderContext = ctx
-                plan = PlanBuilder(rootFolder: folder, context: ctx, files: files).build(
+                let thePlan = PlanBuilder(rootFolder: folder, context: ctx, files: files).build(
                     convertToDNG: convertToDNG,
                     sortFiles: sortFiles
                 )
@@ -155,6 +147,13 @@ struct ContentView: View {
                 log.log(.info, ctx.humanDescription)
                 isScanning = false
                 scanningFile = nil
+
+                if thePlan.operations.isEmpty && deleteEmptyFolders {
+                    plan = thePlan
+                    Task { await executePlan() }
+                } else {
+                    plan = thePlan
+                }
             }
         }
     }

@@ -9,84 +9,88 @@ struct FolderPickerView: View {
     @Binding var deleteEmptyFolders: Bool
     var onPick: () -> Void
     var onScan: () -> Void
-    var onCleanEmpty: () -> Void
+
+    private var anyActive: Bool {
+        convertToDNG || sortFiles || deleteEmptyFolders
+    }
+
+    private var actionLabel: String {
+        var parts: [String] = []
+        if convertToDNG { parts.append("konvertera") }
+        if sortFiles { parts.append("sortera") }
+        if deleteEmptyFolders { parts.append("rensa tomma mappar") }
+        return parts.joined(separator: " och ")
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            GroupBox("Steg 1: Välj mapp") {
+            GroupBox("1. Välj mapp") {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Välj mappen med dina foton.")
-                        .foregroundStyle(.secondary)
                     HStack {
                         Button("Välj mapp…", action: onPick)
                         if let url = selectedFolder {
-                            Text(url.lastPathComponent).font(.callout)
+                            Text(url.lastPathComponent)
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
                         }
                     }
-                    if let ctx = selectedFolder.map({ FolderContext.parse(folderURL: $0) }) {
-                        Text(ctx.humanDescription)
-                            .font(.footnote)
+                    if selectedFolder == nil {
+                        Text("Välj en mapp för att komma igång.")
                             .foregroundStyle(.secondary)
                     }
                 }
                 .padding(8)
             }
 
-            GroupBox("Steg 2: Inställningar") {
+            GroupBox("2. Vad vill du göra?") {
                 VStack(alignment: .leading, spacing: 8) {
                     Toggle("Konvertera RW2 → DNG", isOn: $convertToDNG)
                         .toggleStyle(.switch)
-                    Text("RW2-filer konverteras till DNG med dnglab. Originalet flyttas till papperskorgen.")
+                    Text("RW2-konvertering med dnglab. Originalet hamnar i papperskorgen.")
                         .font(.footnote).foregroundStyle(.secondary).padding(.leading, 28)
 
-                    Toggle("Sortera filer i datum-mappar", isOn: $sortFiles)
+                    Toggle("Sortera filer i YYYY/MM/DD", isOn: $sortFiles)
                         .toggleStyle(.switch)
-                    Text("JPEG och DNG sorteras i YYYY/MM/DD-mappar baserat på EXIF-datum.")
+                    Text("JPEG och DNG sorteras i datum-mappar efter EXIF-datum.")
+                        .font(.footnote).foregroundStyle(.secondary).padding(.leading, 28)
+
+                    Toggle("Rensa tomma mappar", isOn: $deleteEmptyFolders)
+                        .toggleStyle(.switch)
+                    Text("Ta bort alla tomma kataloger i mapp-trädet.")
                         .font(.footnote).foregroundStyle(.secondary).padding(.leading, 28)
 
                     Toggle("Inkludera undermappar", isOn: $recurseSubfolders)
                         .toggleStyle(.switch)
-                    Text("Sök även igenom alla undermappar rekursivt.")
-                        .font(.footnote).foregroundStyle(.secondary).padding(.leading, 28)
-
-                    Toggle("Rensa tomma mappar efter sortering", isOn: $deleteEmptyFolders)
-                        .toggleStyle(.switch)
-                    Text("Efter sortering: ta bort alla tomma kataloger i mapp-trädet.")
+                    Text("Sök även i undermappar (gäller konvertering och sortering).")
                         .font(.footnote).foregroundStyle(.secondary).padding(.leading, 28)
                 }
                 .padding(8)
             }
 
-            GroupBox("Steg 3: Skanna") {
+            GroupBox("3. Starta") {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Appen söker efter RW2, JPEG och DNG-filer\(recurseSubfolders ? " i vald mapp och alla undermappar" : " (endast vald mapp)") och bygger en plan baserat på dina inställningar.")
-                        .foregroundStyle(.secondary)
-
-                    let notReady = !convertToDNG && !sortFiles && !deleteEmptyFolders
-                    if notReady {
-                        Text("Aktivera minst ett alternativ ovan för att kunna skanna.")
-                            .foregroundStyle(.orange).font(.callout)
+                    if anyActive {
+                        Text("Kommer att \(actionLabel) i \"\(selectedFolder?.lastPathComponent ?? "…")\".")
+                            .foregroundStyle(.secondary)
                     }
 
-                    Button("Skanna och bygg plan", action: onScan)
-                        .disabled(selectedFolder == nil || notReady)
+                    if !anyActive {
+                        Text("Välj minst ett alternativ ovan.")
+                            .foregroundStyle(.orange)
+                    }
+
+                    Button(action: onScan) {
+                        Label("Starta", systemImage: "play.fill")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(selectedFolder == nil || !anyActive)
+
                     if let err = scanError {
                         Text(err).foregroundStyle(.red).font(.callout)
                     }
                 }
-                .padding(8)
-            }
-
-            GroupBox("Rensa tomma mappar") {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Skanna och ta bort tomma kataloger i mapp-trädet. Kräver inga inställningar ovan.")
-                        .foregroundStyle(.secondary)
-                    Button("Rensa tomma mappar nu") {
-                        onCleanEmpty()
-                    }
-                    .disabled(selectedFolder == nil)
-                }
-                .padding(8)
+                .padding(12)
             }
         }
     }

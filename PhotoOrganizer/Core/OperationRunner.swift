@@ -204,7 +204,7 @@ final class OperationRunner: ObservableObject {
             await Task.yield()
             let empty = EmptyFolderRemover.scanEmptyDirectories(root: rootFolder)
             if !empty.isEmpty {
-                let (deleted, _) = EmptyFolderRemover.deleteDirectories(empty) { msg in
+                let (deleted, _) = EmptyFolderRemover.deleteDirectories(empty, root: rootFolder) { msg in
                     let level: OperationLog.Level = msg.hasPrefix("Kunde") ? .warn : .info
                     self.log.log(level, msg)
                 }
