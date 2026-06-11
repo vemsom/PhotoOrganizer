@@ -62,13 +62,14 @@ struct FolderPickerView: View {
                     Text("Appen söker efter RW2, JPEG och DNG-filer\(recurseSubfolders ? " i vald mapp och alla undermappar" : " (endast vald mapp)") och bygger en plan baserat på dina inställningar.")
                         .foregroundStyle(.secondary)
 
-                    if !convertToDNG && !sortFiles {
+                    let notReady = !convertToDNG && !sortFiles && !deleteEmptyFolders
+                    if notReady {
                         Text("Aktivera minst ett alternativ ovan för att kunna skanna.")
                             .foregroundStyle(.orange).font(.callout)
                     }
 
                     Button("Skanna och bygg plan", action: onScan)
-                        .disabled(selectedFolder == nil || (!convertToDNG && !sortFiles))
+                        .disabled(selectedFolder == nil || notReady)
                     if let err = scanError {
                         Text(err).foregroundStyle(.red).font(.callout)
                     }
