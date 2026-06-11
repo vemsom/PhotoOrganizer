@@ -56,12 +56,7 @@ struct FolderPickerView: View {
 
                     Toggle("Rensa tomma mappar", isOn: $deleteEmptyFolders)
                         .toggleStyle(.switch)
-                    Text("Ta bort alla tomma kataloger i mapp-trädet.")
-                        .font(.footnote).foregroundStyle(.secondary).padding(.leading, 28)
-
-                    Toggle("Inkludera undermappar", isOn: $recurseSubfolders)
-                        .toggleStyle(.switch)
-                    Text("Sök även i undermappar (gäller konvertering och sortering).")
+                    Text("Ta bort alla tomma kataloger (alltid rekursivt).")
                         .font(.footnote).foregroundStyle(.secondary).padding(.leading, 28)
                 }
                 .padding(8)
@@ -70,7 +65,7 @@ struct FolderPickerView: View {
             GroupBox("3. Starta") {
                 VStack(alignment: .leading, spacing: 12) {
                     if anyActive {
-                        Text("Kommer att \(actionLabel) i \"\(selectedFolder?.lastPathComponent ?? "…")\".")
+                        Text("Kommer att \(actionLabel) i \"\(selectedFolder?.lastPathComponent ?? "…")\"\(recurseSubfolders ? " med undermappar" : "").")
                             .foregroundStyle(.secondary)
                     }
 
@@ -78,6 +73,9 @@ struct FolderPickerView: View {
                         Text("Välj minst ett alternativ ovan.")
                             .foregroundStyle(.orange)
                     }
+
+                    Toggle("Inkludera undermappar (gäller konvertering och sortering)", isOn: $recurseSubfolders)
+                        .toggleStyle(.switch)
 
                     Button(action: onScan) {
                         Label("Starta", systemImage: "play.fill")
